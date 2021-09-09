@@ -9,11 +9,13 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * @author 一贫
@@ -49,7 +51,7 @@ public class HBaseUtil {
             log.info("创建namespace {} 成功.", namespace);
         } catch (Exception e) {
             String msg = String.format("创建namespace %s 失败.", namespace);
-            log.error(msg, namespace, e);
+            log.error(msg, e);
             throw new LabradorException(msg);
         }
     }
@@ -65,8 +67,7 @@ public class HBaseUtil {
     public void createTable(String tableName, String[] columnFamilies, String namespace) {
         if (columnFamilies == null || columnFamilies.length == 0)
             throw new RuntimeException("创建表至少要指定1个列族.");
-        if (StringUtils.isNotBlank(namespace))
-            tableName = namespace + ":" + tableName;
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
         TableName tabName = TableName.valueOf(tableName);
         try {
             Admin admin = connection.getAdmin();
@@ -82,7 +83,7 @@ public class HBaseUtil {
             throw e;
         } catch (Exception e) {
             String msg = String.format("创建namespace %s 失败.", namespace);
-            log.error(msg, namespace, e);
+            log.error(msg, e);
             throw new LabradorException(msg);
         }
     }
@@ -96,6 +97,101 @@ public class HBaseUtil {
      */
     public void createTable(String tableName, String[] columnFamilies) {
         createTable(tableName, columnFamilies, null);
+    }
+
+    /**
+     * 保存数据
+     *
+     * @param tableName
+     * @param rowkey
+     * @param columnFamily
+     * @param column
+     * @param data
+     * @param namespace
+     * @return void
+     */
+    public void put(String tableName, String rowkey, String columnFamily, String column, String data, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(TableName.valueOf(tableName));
+            Put put = new Put(Bytes.toBytes(rowkey));
+            put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), Bytes.toBytes(data));
+            table.put(put);
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("保存数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowkey, columnFamily);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 保存数据
+     *
+     * @param tableName
+     * @param rowkey
+     * @param columnFamily
+     * @param column
+     * @param data
+     * @return void
+     */
+    public void put(String tableName, String rowkey, String columnFamily, String column, String data) {
+        put(tableName, rowkey, columnFamily, column, data, null);
+    }
+
+    /**
+     * 保存数据
+     *
+     * @param tableName
+     * @param rowkey
+     * @param columnFamily
+     * @param keyValues,   K: column qualifier,V: data
+     * @param namespace
+     * @return void
+     */
+    public void put(String tableName, String rowkey, String columnFamily, Map<String, String> keyValues, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(TableName.valueOf(tableName));
+            Put put = new Put(Bytes.toBytes(rowkey));
+            byte[] rowKeyBytes = Bytes.toBytes(columnFamily);
+            keyValues.forEach((k, v) -> {
+                put.addColumn(rowKeyBytes, Bytes.toBytes(k), Bytes.toBytes(v));
+            });
+            table.put(put);
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("保存数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowkey, columnFamily);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 保存数据
+     *
+     * @param tableName
+     * @param rowkey
+     * @param columnFamily
+     * @param keyValues,   K: column qualifier,V: data
+     * @return void
+     */
+    public void put(String tableName, String rowkey, String columnFamily, Map<String, String> keyValues) {
+        put(tableName, rowkey, columnFamily, keyValues, null);
+    }
+
+    private String buildTableNameWithNameSpace(String tableName, String namespace) {
+        if (StringUtils.isNotBlank(namespace))
+            tableName = namespace + ":" + tableName;
+        return tableName;
     }
 
     @PostConstruct
