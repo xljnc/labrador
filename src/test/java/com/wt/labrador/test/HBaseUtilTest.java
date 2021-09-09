@@ -17,7 +17,12 @@ public class HBaseUtilTest {
     private HBaseUtil hBaseUtil;
 
     @Test
-    public void testCreateNamespace(){
+    public void testCreateTable() {
+        hBaseUtil.createTable("users", new String[]{"info"}, "qiyu");
+    }
+
+    @Test
+    public void testCreateNamespace() {
         hBaseUtil.createNamespace("qiyu");
     }
 }
