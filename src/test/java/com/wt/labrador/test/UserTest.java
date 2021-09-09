@@ -28,5 +28,9 @@ public class UserTest {
         Put put = new Put(Bytes.toBytes("qiyu"));
         put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("name"), Bytes.toBytes("qiyu"));
         user.put(put);
+        Get get = new Get(Bytes.toBytes("qiyu"));
+        get.addFamily(Bytes.toBytes("info"));
+        Result result = user.get(get);
+        System.out.println(result);
     }
 }
