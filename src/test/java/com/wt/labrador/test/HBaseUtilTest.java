@@ -17,12 +17,23 @@ public class HBaseUtilTest {
     private HBaseUtil hBaseUtil;
 
     @Test
+    public void testCreateNamespace() {
+        hBaseUtil.createNamespace("qiyu");
+    }
+
+    @Test
     public void testCreateTable() {
         hBaseUtil.createTable("users", new String[]{"info"}, "qiyu");
     }
 
     @Test
-    public void testCreateNamespace() {
-        hBaseUtil.createNamespace("qiyu");
+    public void testPut() {
+        hBaseUtil.put("users", "qiyu", "info", "name", "qiyu", "qiyu");
+    }
+
+    @Test
+    public void testGet() {
+       String result = hBaseUtil.get("users", "qiyu", "info", "name", "qiyu");
+        System.out.println(result);
     }
 }

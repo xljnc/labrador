@@ -82,7 +82,7 @@ public class HBaseUtil {
         } catch (LabradorException e) {
             throw e;
         } catch (Exception e) {
-            String msg = String.format("创建namespace %s 失败.", namespace);
+            String msg = String.format("创建表 %s 失败.", namespace);
             log.error(msg, e);
             throw new LabradorException(msg);
         }
@@ -116,7 +116,7 @@ public class HBaseUtil {
             TableName tabName = TableName.valueOf(tableName);
             if (!connection.getAdmin().tableExists(tabName))
                 throw new LabradorException(String.format("表 %s 不存在", tableName));
-            Table table = connection.getTable(TableName.valueOf(tableName));
+            Table table = connection.getTable(tabName);
             Put put = new Put(Bytes.toBytes(rowkey));
             put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), Bytes.toBytes(data));
             table.put(put);
@@ -159,7 +159,7 @@ public class HBaseUtil {
             TableName tabName = TableName.valueOf(tableName);
             if (!connection.getAdmin().tableExists(tabName))
                 throw new LabradorException(String.format("表 %s 不存在", tableName));
-            Table table = connection.getTable(TableName.valueOf(tableName));
+            Table table = connection.getTable(tabName);
             Put put = new Put(Bytes.toBytes(rowkey));
             byte[] rowKeyBytes = Bytes.toBytes(columnFamily);
             keyValues.forEach((k, v) -> {
@@ -186,6 +186,49 @@ public class HBaseUtil {
      */
     public void put(String tableName, String rowkey, String columnFamily, Map<String, String> keyValues) {
         put(tableName, rowkey, columnFamily, keyValues, null);
+    }
+
+    /**
+     * 获取某个列的数据数据
+     *
+     * @param tableName
+     * @param rowkey
+     * @param columnFamily
+     * @param column
+     * @param namespace
+     * @return String
+     */
+    public String get(String tableName, String rowkey, String columnFamily, String column, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Get get = new Get(Bytes.toBytes(rowkey));
+            get.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column));
+            Result result = table.get(get);
+            return Bytes.toString(result.value());
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("获取数据失败,table:%s,rowKey:%s,columnFamily:%s,column:%s", tableName, rowkey, columnFamily, column);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 获取某个列的数据数据
+     *
+     * @param tableName
+     * @param rowkey
+     * @param columnFamily
+     * @param column
+     * @return String
+     */
+    public String get(String tableName, String rowkey, String columnFamily, String column) {
+        return get(tableName, rowkey, columnFamily, column, null);
     }
 
     private String buildTableNameWithNameSpace(String tableName, String namespace) {
