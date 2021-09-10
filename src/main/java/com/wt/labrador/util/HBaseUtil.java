@@ -378,7 +378,7 @@ public class HBaseUtil {
      * @param namespace
      * @return void
      */
-    public void deleteColumnFamily(String tableName, String rowKey, String columnFamily, String namespace) {
+    public void deleteColumnFamily(String tableName, String rowKey, String[] columnFamilies, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
         try {
             TableName tabName = TableName.valueOf(tableName);
@@ -386,12 +386,14 @@ public class HBaseUtil {
                 throw new LabradorException(String.format("表 %s 不存在", tableName));
             Table table = connection.getTable(tabName);
             Delete delete = new Delete(Bytes.toBytes(rowKey));
-            delete.addFamily(Bytes.toBytes(columnFamily));
+            for (String columnFamily : columnFamilies) {
+                delete.addFamily(Bytes.toBytes(columnFamily));
+            }
             table.delete(delete);
         } catch (LabradorException e) {
             throw e;
         } catch (Exception e) {
-            String msg = String.format("删除数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowKey, columnFamily);
+            String msg = String.format("删除数据失败,table:%s,rowKey:%s", tableName, rowKey);
             log.error(msg, e);
             throw new LabradorException(msg);
         }
@@ -405,8 +407,8 @@ public class HBaseUtil {
      * @param columnFamily
      * @return void
      */
-    public void deleteColumnFamily(String tableName, String rowKey, String columnFamily) {
-        deleteColumnFamily(tableName, rowKey, columnFamily, null);
+    public void deleteColumnFamily(String tableName, String rowKey, String[] columnFamilies) {
+        deleteColumnFamily(tableName, rowKey, columnFamilies, null);
     }
 
     /**
@@ -439,6 +441,19 @@ public class HBaseUtil {
             log.error(msg, e);
             throw new LabradorException(msg);
         }
+    }
+
+    /**
+     * 删除某行某列族数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param columnFamily
+     * @param columns
+     * @return void
+     */
+    public void deleteColumn(String tableName, String rowKey, String columnFamily, String[] columns) {
+        deleteColumn(tableName, rowKey, columnFamily, columns, null);
     }
 
     private String buildTableNameWithNameSpace(String tableName, String namespace) {
