@@ -328,7 +328,117 @@ public class HBaseUtil {
      * @return Map<String, String>
      */
     public Map<String, Map<String, String>> getRow(String tableName, String rowKey) {
-        return getRow(tableName, rowKey);
+        return getRow(tableName, rowKey, null);
+    }
+
+    /**
+     * 删除某行数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param namespace
+     * @return void
+     */
+    public void deleteRow(String tableName, String rowKey, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Delete delete = new Delete(Bytes.toBytes(rowKey));
+            table.delete(delete);
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("删除数据失败,table:%s,rowKey:%s", tableName, rowKey);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+
+    /**
+     * 删除某行数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @return void
+     */
+    public void deleteRow(String tableName, String rowKey) {
+        deleteRow(tableName, rowKey, null);
+    }
+
+    /**
+     * 删除某行某列族数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param columnFamily
+     * @param namespace
+     * @return void
+     */
+    public void deleteColumnFamily(String tableName, String rowKey, String columnFamily, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Delete delete = new Delete(Bytes.toBytes(rowKey));
+            delete.addFamily(Bytes.toBytes(columnFamily));
+            table.delete(delete);
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("删除数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowKey, columnFamily);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 删除某行某列族数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param columnFamily
+     * @return void
+     */
+    public void deleteColumnFamily(String tableName, String rowKey, String columnFamily) {
+        deleteColumnFamily(tableName, rowKey, columnFamily, null);
+    }
+
+    /**
+     * 删除某行某列族数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param columnFamily
+     * @param columns
+     * @param namespace
+     * @return void
+     */
+    public void deleteColumn(String tableName, String rowKey, String columnFamily, String[] columns, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Delete delete = new Delete(Bytes.toBytes(rowKey));
+            byte[] cfBytes = Bytes.toBytes(columnFamily);
+            for (String column : columns) {
+                delete.addColumn(cfBytes, Bytes.toBytes(column));
+            }
+            table.delete(delete);
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("删除数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowKey, columnFamily);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
     }
 
     private String buildTableNameWithNameSpace(String tableName, String namespace) {
@@ -338,7 +448,7 @@ public class HBaseUtil {
     }
 
     @PostConstruct
-    public void init() throws IOException {
+    private void init() throws IOException {
         config = HBaseConfiguration.create();
         config.set("hbase.zookeeper.quorum", zookeeper.quorum);
         HBaseAdmin.available(config);

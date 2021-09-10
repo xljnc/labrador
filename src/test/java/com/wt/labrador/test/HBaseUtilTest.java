@@ -30,6 +30,7 @@ public class HBaseUtilTest {
     @Test
     public void testPut() {
         hBaseUtil.put("users", "qiyu", "info", "name", "qiyu", "qiyu");
+        hBaseUtil.put("users", "qiyu", "work", "company", "工地", "qiyu");
     }
 
     @Test
@@ -48,5 +49,15 @@ public class HBaseUtilTest {
     public void testGetRow() {
         Map<String, Map<String, String>> map = hBaseUtil.getRow("users", "qiyu", "qiyu");
         System.out.println(map);
+    }
+
+    @Test
+    public void testDeleteRow() {
+        hBaseUtil.deleteRow("users", "qiyu", "qiyu");
+    }
+
+    @Test
+    public void testDeleteColumnFamily() {
+        hBaseUtil.deleteColumnFamily("users", "qiyu", "info", "qiyu");
     }
 }
