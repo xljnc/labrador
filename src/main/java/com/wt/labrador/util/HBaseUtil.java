@@ -14,9 +14,8 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 
 /**
  * @author 一贫
@@ -299,18 +298,7 @@ public class HBaseUtil {
             Table table = connection.getTable(tabName);
             Get get = new Get(Bytes.toBytes(rowKey));
             Result result = table.get(get);
-            List<Cell> cells = result.listCells();
-            Map<String, Map<String, String>> kv = new HashMap<>();
-            if (CollectionUtils.isEmpty(cells))
-                return kv;
-            for (Cell cell : cells) {
-                String columnFamily = new String(CellUtil.cloneFamily(cell));
-                String column = new String(CellUtil.cloneQualifier(cell));
-                String value = new String(CellUtil.cloneValue(cell), "UTF-8");
-                kv.putIfAbsent(columnFamily, new HashMap<>());
-                kv.get(columnFamily).put(column, value);
-            }
-            return kv;
+            return resultToMap(result);
         } catch (LabradorException e) {
             throw e;
         } catch (Exception e) {
@@ -374,7 +362,7 @@ public class HBaseUtil {
      *
      * @param tableName
      * @param rowKey
-     * @param columnFamily
+     * @param columnFamilies
      * @param namespace
      * @return void
      */
@@ -404,7 +392,7 @@ public class HBaseUtil {
      *
      * @param tableName
      * @param rowKey
-     * @param columnFamily
+     * @param columnFamilies
      * @return void
      */
     public void deleteColumnFamily(String tableName, String rowKey, String[] columnFamilies) {
@@ -454,6 +442,136 @@ public class HBaseUtil {
      */
     public void deleteColumn(String tableName, String rowKey, String columnFamily, String[] columns) {
         deleteColumn(tableName, rowKey, columnFamily, columns, null);
+    }
+
+    /**
+     * 扫描数据
+     *
+     * @param tableName
+     * @param startRow
+     * @param stopRow
+     * @param columnFamilies
+     * @param namespace
+     * @return void
+     */
+    public Map<String, Map<String, Map<String, String>>> scan(String tableName, String startRow, String stopRow, String[] columnFamilies, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Scan scan = new Scan();
+            if (StringUtils.isNotBlank(startRow))
+                scan.withStartRow(Bytes.toBytes(startRow));
+            if (StringUtils.isNotBlank(stopRow))
+                scan.withStopRow(Bytes.toBytes(stopRow));
+            if (columnFamilies != null && columnFamilies.length > 0) {
+                for (String columnFamily : columnFamilies) {
+                    scan.addFamily(Bytes.toBytes(columnFamily));
+                }
+            }
+            ResultScanner rs = table.getScanner(scan);
+            Map<String, Map<String, Map<String, String>>> rows = new LinkedHashMap<>();
+            for (Result result : rs) {
+                Map<String, Map<String, String>> map = resultToMap(result);
+                rows.put(Bytes.toString(result.getRow()), map);
+            }
+            return rows;
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("扫描数据失败,table:%s", tableName);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 扫描数据
+     *
+     * @param tableName
+     * @param startRow
+     * @param stopRow
+     * @param columnFamilies
+     * @return void
+     */
+    public Map<String, Map<String, Map<String, String>>> scan(String tableName, String startRow, String stopRow, String[] columnFamilies) {
+        return scan(tableName, startRow, stopRow, columnFamilies, null);
+    }
+
+    /**
+     * 扫描某个列族数据
+     *
+     * @param tableName
+     * @param startRow
+     * @param stopRow
+     * @param columnFamily
+     * @param columns
+     * @param namespace
+     * @return void
+     */
+    public Map<String, Map<String, Map<String, String>>> scanColumnFamily(String tableName, String startRow, String stopRow, String columnFamily, String[] columns, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Scan scan = new Scan();
+            if (StringUtils.isNotBlank(startRow))
+                scan.withStartRow(Bytes.toBytes(startRow));
+            if (StringUtils.isNotBlank(stopRow))
+                scan.withStopRow(Bytes.toBytes(stopRow));
+            if (StringUtils.isNotBlank(columnFamily) && columns != null && columns.length > 0) {
+                byte[] colFamily = Bytes.toBytes(columnFamily);
+                for (String column : columns) {
+                    scan.addColumn(colFamily, Bytes.toBytes(column));
+                }
+            }
+            ResultScanner rs = table.getScanner(scan);
+            Map<String, Map<String, Map<String, String>>> rows = new LinkedHashMap<>();
+            for (Result result : rs) {
+                Map<String, Map<String, String>> map = resultToMap(result);
+                rows.put(Bytes.toString(result.getRow()), map);
+            }
+            return rows;
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("扫描数据失败,table:%s", tableName);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 扫描某个列族数据
+     *
+     * @param tableName
+     * @param startRow
+     * @param stopRow
+     * @param columnFamily
+     * @param columns
+     * @return void
+     */
+    public Map<String, Map<String, Map<String, String>>> scanColumnFamily(String tableName, String startRow, String stopRow, String columnFamily, String[] columns) {
+        return scanColumnFamily(tableName, startRow, stopRow, columnFamily, columns, null);
+    }
+
+    private Map<String, Map<String, String>> resultToMap(Result result) throws UnsupportedEncodingException {
+        List<Cell> cells = result.listCells();
+        Map<String, Map<String, String>> kv = new HashMap<>();
+        if (CollectionUtils.isEmpty(cells))
+            return kv;
+        for (Cell cell : cells) {
+            String columnFamily = new String(CellUtil.cloneFamily(cell));
+            String column = new String(CellUtil.cloneQualifier(cell));
+            String value = new String(CellUtil.cloneValue(cell), "UTF-8");
+            kv.putIfAbsent(columnFamily, new HashMap<>());
+            kv.get(columnFamily).put(column, value);
+        }
+        return kv;
     }
 
     private String buildTableNameWithNameSpace(String tableName, String namespace) {

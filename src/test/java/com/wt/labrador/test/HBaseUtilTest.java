@@ -30,7 +30,11 @@ public class HBaseUtilTest {
     @Test
     public void testPut() {
         hBaseUtil.put("users", "qiyu", "info", "name", "qiyu", "qiyu");
+        hBaseUtil.put("users", "qiyu", "info", "age", "12", "qiyu");
         hBaseUtil.put("users", "qiyu", "work", "company", "工地", "qiyu");
+        hBaseUtil.put("users", "ada", "info", "name", "阿大", "qiyu");
+        hBaseUtil.put("users", "ada", "info", "age", "18", "qiyu");
+        hBaseUtil.put("users", "ada", "work", "company", "马路局", "qiyu");
     }
 
     @Test
@@ -58,11 +62,23 @@ public class HBaseUtilTest {
 
     @Test
     public void testDeleteColumnFamily() {
-        hBaseUtil.deleteColumnFamily("users", "qiyu", new String[]{"info","work"}, "qiyu");
+        hBaseUtil.deleteColumnFamily("users", "qiyu", new String[]{"info", "work"}, "qiyu");
     }
 
     @Test
     public void testDeleteColumn() {
         hBaseUtil.deleteColumn("users", "qiyu", "info", new String[]{"name", "age"}, "qiyu");
+    }
+
+    @Test
+    public void testScan() {
+        Map<String, Map<String, Map<String, String>>> result = hBaseUtil.scan("users", "ada", null, new String[]{"info", "work"}, "qiyu");
+        System.out.println(result);
+    }
+
+    @Test
+    public void testScanColumnFamily() {
+        Map<String, Map<String, Map<String, String>>> result = hBaseUtil.scanColumnFamily("users", "ada", null, "info", new String[]{"name", "age"}, "qiyu");
+        System.out.println(result);
     }
 }
