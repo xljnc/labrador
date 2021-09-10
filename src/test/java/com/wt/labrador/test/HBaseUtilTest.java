@@ -33,14 +33,20 @@ public class HBaseUtilTest {
     }
 
     @Test
-    public void testGet() {
-        String result = hBaseUtil.get("users", "qiyu", "info", "name", "qiyu");
+    public void testGetColumn() {
+        String result = hBaseUtil.getColumn("users", "qiyu", "info", "name", "qiyu");
         System.out.println(result);
     }
 
     @Test
     public void testGetColumnFamily() {
         Map<String, String> map = hBaseUtil.getColumnFamily("users", "qiyu", "info", "qiyu");
+        System.out.println(map);
+    }
+
+    @Test
+    public void testGetRow() {
+        Map<String, Map<String, String>> map = hBaseUtil.getRow("users", "qiyu", "qiyu");
         System.out.println(map);
     }
 }

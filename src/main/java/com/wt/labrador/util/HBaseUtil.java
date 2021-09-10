@@ -199,7 +199,7 @@ public class HBaseUtil {
      * @param namespace
      * @return String
      */
-    public String get(String tableName, String rowKey, String columnFamily, String column, String namespace) {
+    public String getColumn(String tableName, String rowKey, String columnFamily, String column, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
         try {
             TableName tabName = TableName.valueOf(tableName);
@@ -220,7 +220,7 @@ public class HBaseUtil {
     }
 
     /**
-     * 获取某个列的数据数据
+     * 获取某个列的数据
      *
      * @param tableName
      * @param rowKey
@@ -228,12 +228,12 @@ public class HBaseUtil {
      * @param column
      * @return String
      */
-    public String get(String tableName, String rowKey, String columnFamily, String column) {
-        return get(tableName, rowKey, columnFamily, column, null);
+    public String getColumn(String tableName, String rowKey, String columnFamily, String column) {
+        return getColumn(tableName, rowKey, columnFamily, column, null);
     }
 
     /**
-     * 获取某个列族的数据
+     * 获取某个列族数据
      *
      * @param tableName
      * @param rowKey
@@ -271,7 +271,7 @@ public class HBaseUtil {
     }
 
     /**
-     * 获取某个列族的数据
+     * 获取某个列族数据
      *
      * @param tableName
      * @param rowKey
@@ -280,6 +280,55 @@ public class HBaseUtil {
      */
     public Map<String, String> getColumnFamily(String tableName, String rowKey, String columnFamily) {
         return getColumnFamily(tableName, rowKey, columnFamily, null);
+    }
+
+    /**
+     * 获取某行数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param namespace
+     * @return Map<String, String>
+     */
+    public Map<String, Map<String, String>> getRow(String tableName, String rowKey, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Get get = new Get(Bytes.toBytes(rowKey));
+            Result result = table.get(get);
+            List<Cell> cells = result.listCells();
+            Map<String, Map<String, String>> kv = new HashMap<>();
+            if (CollectionUtils.isEmpty(cells))
+                return kv;
+            for (Cell cell : cells) {
+                String columnFamily = new String(CellUtil.cloneFamily(cell));
+                String column = new String(CellUtil.cloneQualifier(cell));
+                String value = new String(CellUtil.cloneValue(cell), "UTF-8");
+                kv.putIfAbsent(columnFamily, new HashMap<>());
+                kv.get(columnFamily).put(column, value);
+            }
+            return kv;
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("获取数据失败,table:%s,rowKey:%s", tableName, rowKey);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 获取某行数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @return Map<String, String>
+     */
+    public Map<String, Map<String, String>> getRow(String tableName, String rowKey) {
+        return getRow(tableName, rowKey);
     }
 
     private String buildTableNameWithNameSpace(String tableName, String namespace) {
