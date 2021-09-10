@@ -5,16 +5,17 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.NamespaceDescriptor;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -103,27 +104,27 @@ public class HBaseUtil {
      * 保存数据
      *
      * @param tableName
-     * @param rowkey
+     * @param rowKey
      * @param columnFamily
      * @param column
      * @param data
      * @param namespace
      * @return void
      */
-    public void put(String tableName, String rowkey, String columnFamily, String column, String data, String namespace) {
+    public void put(String tableName, String rowKey, String columnFamily, String column, String data, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
         try {
             TableName tabName = TableName.valueOf(tableName);
             if (!connection.getAdmin().tableExists(tabName))
                 throw new LabradorException(String.format("表 %s 不存在", tableName));
             Table table = connection.getTable(tabName);
-            Put put = new Put(Bytes.toBytes(rowkey));
+            Put put = new Put(Bytes.toBytes(rowKey));
             put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), Bytes.toBytes(data));
             table.put(put);
         } catch (LabradorException e) {
             throw e;
         } catch (Exception e) {
-            String msg = String.format("保存数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowkey, columnFamily);
+            String msg = String.format("保存数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowKey, columnFamily);
             log.error(msg, e);
             throw new LabradorException(msg);
         }
@@ -133,34 +134,34 @@ public class HBaseUtil {
      * 保存数据
      *
      * @param tableName
-     * @param rowkey
+     * @param rowKey
      * @param columnFamily
      * @param column
      * @param data
      * @return void
      */
-    public void put(String tableName, String rowkey, String columnFamily, String column, String data) {
-        put(tableName, rowkey, columnFamily, column, data, null);
+    public void put(String tableName, String rowKey, String columnFamily, String column, String data) {
+        put(tableName, rowKey, columnFamily, column, data, null);
     }
 
     /**
      * 保存数据
      *
      * @param tableName
-     * @param rowkey
+     * @param rowKey
      * @param columnFamily
      * @param keyValues,   K: column qualifier,V: data
      * @param namespace
      * @return void
      */
-    public void put(String tableName, String rowkey, String columnFamily, Map<String, String> keyValues, String namespace) {
+    public void put(String tableName, String rowKey, String columnFamily, Map<String, String> keyValues, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
         try {
             TableName tabName = TableName.valueOf(tableName);
             if (!connection.getAdmin().tableExists(tabName))
                 throw new LabradorException(String.format("表 %s 不存在", tableName));
             Table table = connection.getTable(tabName);
-            Put put = new Put(Bytes.toBytes(rowkey));
+            Put put = new Put(Bytes.toBytes(rowKey));
             byte[] rowKeyBytes = Bytes.toBytes(columnFamily);
             keyValues.forEach((k, v) -> {
                 put.addColumn(rowKeyBytes, Bytes.toBytes(k), Bytes.toBytes(v));
@@ -169,7 +170,7 @@ public class HBaseUtil {
         } catch (LabradorException e) {
             throw e;
         } catch (Exception e) {
-            String msg = String.format("保存数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowkey, columnFamily);
+            String msg = String.format("保存数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowKey, columnFamily);
             log.error(msg, e);
             throw new LabradorException(msg);
         }
@@ -179,40 +180,40 @@ public class HBaseUtil {
      * 保存数据
      *
      * @param tableName
-     * @param rowkey
+     * @param rowKey
      * @param columnFamily
      * @param keyValues,   K: column qualifier,V: data
      * @return void
      */
-    public void put(String tableName, String rowkey, String columnFamily, Map<String, String> keyValues) {
-        put(tableName, rowkey, columnFamily, keyValues, null);
+    public void put(String tableName, String rowKey, String columnFamily, Map<String, String> keyValues) {
+        put(tableName, rowKey, columnFamily, keyValues, null);
     }
 
     /**
-     * 获取某个列的数据数据
+     * 获取某个列的数据
      *
      * @param tableName
-     * @param rowkey
+     * @param rowKey
      * @param columnFamily
      * @param column
      * @param namespace
      * @return String
      */
-    public String get(String tableName, String rowkey, String columnFamily, String column, String namespace) {
+    public String get(String tableName, String rowKey, String columnFamily, String column, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
         try {
             TableName tabName = TableName.valueOf(tableName);
             if (!connection.getAdmin().tableExists(tabName))
                 throw new LabradorException(String.format("表 %s 不存在", tableName));
             Table table = connection.getTable(tabName);
-            Get get = new Get(Bytes.toBytes(rowkey));
+            Get get = new Get(Bytes.toBytes(rowKey));
             get.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column));
             Result result = table.get(get);
             return Bytes.toString(result.value());
         } catch (LabradorException e) {
             throw e;
         } catch (Exception e) {
-            String msg = String.format("获取数据失败,table:%s,rowKey:%s,columnFamily:%s,column:%s", tableName, rowkey, columnFamily, column);
+            String msg = String.format("获取数据失败,table:%s,rowKey:%s,columnFamily:%s,column:%s", tableName, rowKey, columnFamily, column);
             log.error(msg, e);
             throw new LabradorException(msg);
         }
@@ -222,13 +223,63 @@ public class HBaseUtil {
      * 获取某个列的数据数据
      *
      * @param tableName
-     * @param rowkey
+     * @param rowKey
      * @param columnFamily
      * @param column
      * @return String
      */
-    public String get(String tableName, String rowkey, String columnFamily, String column) {
-        return get(tableName, rowkey, columnFamily, column, null);
+    public String get(String tableName, String rowKey, String columnFamily, String column) {
+        return get(tableName, rowKey, columnFamily, column, null);
+    }
+
+    /**
+     * 获取某个列族的数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param columnFamily
+     * @param namespace
+     * @return Map<String, String>
+     */
+    public Map<String, String> getColumnFamily(String tableName, String rowKey, String columnFamily, String namespace) {
+        tableName = buildTableNameWithNameSpace(tableName, namespace);
+        try {
+            TableName tabName = TableName.valueOf(tableName);
+            if (!connection.getAdmin().tableExists(tabName))
+                throw new LabradorException(String.format("表 %s 不存在", tableName));
+            Table table = connection.getTable(tabName);
+            Get get = new Get(Bytes.toBytes(rowKey));
+            get.addFamily(Bytes.toBytes(columnFamily));
+            Result result = table.get(get);
+            List<Cell> cells = result.listCells();
+            Map<String, String> kv = new HashMap<>();
+            if (CollectionUtils.isEmpty(cells))
+                return kv;
+            for (Cell cell : cells) {
+                String column = new String(CellUtil.cloneQualifier(cell));
+                String value = new String(CellUtil.cloneValue(cell), "UTF-8");
+                kv.put(column, value);
+            }
+            return kv;
+        } catch (LabradorException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = String.format("获取数据失败,table:%s,rowKey:%s,columnFamily:%s", tableName, rowKey, columnFamily);
+            log.error(msg, e);
+            throw new LabradorException(msg);
+        }
+    }
+
+    /**
+     * 获取某个列族的数据
+     *
+     * @param tableName
+     * @param rowKey
+     * @param columnFamily
+     * @return Map<String, String>
+     */
+    public Map<String, String> getColumnFamily(String tableName, String rowKey, String columnFamily) {
+        return getColumnFamily(tableName, rowKey, columnFamily, null);
     }
 
     private String buildTableNameWithNameSpace(String tableName, String namespace) {

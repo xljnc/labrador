@@ -4,7 +4,8 @@ import com.wt.labrador.util.HBaseUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+
+import java.util.Map;
 
 /**
  * @author 一贫
@@ -33,7 +34,13 @@ public class HBaseUtilTest {
 
     @Test
     public void testGet() {
-       String result = hBaseUtil.get("users", "qiyu", "info", "name", "qiyu");
+        String result = hBaseUtil.get("users", "qiyu", "info", "name", "qiyu");
         System.out.println(result);
+    }
+
+    @Test
+    public void testGetColumnFamily() {
+        Map<String, String> map = hBaseUtil.getColumnFamily("users", "qiyu", "info", "qiyu");
+        System.out.println(map);
     }
 }
