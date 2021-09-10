@@ -60,4 +60,9 @@ public class HBaseUtilTest {
     public void testDeleteColumnFamily() {
         hBaseUtil.deleteColumnFamily("users", "qiyu", "info", "qiyu");
     }
+
+    @Test
+    public void testDeleteColumn() {
+        hBaseUtil.deleteColumn("users", "qiyu", "info", new String[]{"name", "age"}, "qiyu");
+    }
 }
