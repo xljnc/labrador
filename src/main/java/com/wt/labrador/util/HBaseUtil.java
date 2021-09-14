@@ -238,7 +238,7 @@ public class HBaseUtil {
      * @param rowKey
      * @param columnFamily
      * @param namespace
-     * @return Map<String, String>
+     * @return Map<column Qualifier, String>
      */
     public Map<String, String> getColumnFamily(String tableName, String rowKey, String columnFamily, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
@@ -275,7 +275,7 @@ public class HBaseUtil {
      * @param tableName
      * @param rowKey
      * @param columnFamily
-     * @return Map<String, String>
+     * @return Map<column Qualifier, String>
      */
     public Map<String, String> getColumnFamily(String tableName, String rowKey, String columnFamily) {
         return getColumnFamily(tableName, rowKey, columnFamily, null);
@@ -287,7 +287,7 @@ public class HBaseUtil {
      * @param tableName
      * @param rowKey
      * @param namespace
-     * @return Map<String, String>
+     * @return Map<Column Family, Map<Column Qualifier, Value>>
      */
     public Map<String, Map<String, String>> getRow(String tableName, String rowKey, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
@@ -313,7 +313,7 @@ public class HBaseUtil {
      *
      * @param tableName
      * @param rowKey
-     * @return Map<String, String>
+     * @return Map<ro, Map<String, String>>
      */
     public Map<String, Map<String, String>> getRow(String tableName, String rowKey) {
         return getRow(tableName, rowKey, null);
@@ -452,7 +452,7 @@ public class HBaseUtil {
      * @param stopRow
      * @param columnFamilies
      * @param namespace
-     * @return void
+     * @return Map<rowKey, Map<ColumnFamily, Map<Column qualifier, Value>>>
      */
     public Map<String, Map<String, Map<String, String>>> scan(String tableName, String startRow, String stopRow, String[] columnFamilies, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
@@ -494,7 +494,7 @@ public class HBaseUtil {
      * @param startRow
      * @param stopRow
      * @param columnFamilies
-     * @return void
+     * @return Map<rowKey, Map<ColumnFamily, Map<Column qualifier, Value>>>
      */
     public Map<String, Map<String, Map<String, String>>> scan(String tableName, String startRow, String stopRow, String[] columnFamilies) {
         return scan(tableName, startRow, stopRow, columnFamilies, null);
@@ -509,7 +509,7 @@ public class HBaseUtil {
      * @param columnFamily
      * @param columns
      * @param namespace
-     * @return void
+     * @return Map<ColumnFamily, Map<Column qualifier, Value>>
      */
     public Map<String, Map<String, Map<String, String>>> scanColumnFamily(String tableName, String startRow, String stopRow, String columnFamily, String[] columns, String namespace) {
         tableName = buildTableNameWithNameSpace(tableName, namespace);
@@ -553,7 +553,7 @@ public class HBaseUtil {
      * @param stopRow
      * @param columnFamily
      * @param columns
-     * @return void
+     * @return Map<ColumnFamily, Map<Column qualifier, Value>>
      */
     public Map<String, Map<String, Map<String, String>>> scanColumnFamily(String tableName, String startRow, String stopRow, String columnFamily, String[] columns) {
         return scanColumnFamily(tableName, startRow, stopRow, columnFamily, columns, null);
