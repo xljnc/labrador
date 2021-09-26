@@ -24,7 +24,7 @@ public class HBaseUtilTest {
 
     @Test
     public void testCreateTable() {
-        hBaseUtil.createTable("users", new String[]{"info","work"}, "qiyu");
+        hBaseUtil.createTable("users", new String[]{"info", "work"}, "qiyu");
     }
 
     @Test
@@ -53,6 +53,8 @@ public class HBaseUtilTest {
     public void testGetRow() {
         Map<String, Map<String, String>> map = hBaseUtil.getRow("users", "qiyu", "qiyu");
         System.out.println(map);
+        String value = hBaseUtil.getColumn("users", "qiyu", "info", "test", "qiyu");
+        System.out.println(value);
     }
 
     @Test
